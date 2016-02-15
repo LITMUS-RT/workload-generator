@@ -23,10 +23,18 @@ then
     echo "Could not switch to Linux"
     exit 1
 fi
+
+echo 0 > /proc/litmus/release_master
+if [ "$?" -ne 0 ]
+then
+    echo "Could not set release master"
+    exit 1
+fi
+
 setsched {scheduler}
 if [ "$?" -ne 0 ]
 then
-    echo "Scheduler name is not valid"
+    echo "Scheduler {scheduler} could not be activated"
     exit 1
 fi
 
@@ -145,7 +153,7 @@ def main(args=sys.argv[1:]):
         ts = load_ts_from_json(fname)
         generate_sh(basename(fname).replace('.json', ''), ts,
                     duration=30,
-                    want_debug=True, want_overheads=False, want_schedule=False)
+                    want_debug=False, want_overheads=True, want_schedule=False)
 
 
 if __name__ == '__main__':
