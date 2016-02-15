@@ -35,7 +35,7 @@ def make_taskset(n, u, min_wcet=500):
 
 
 def all_possible_affinities(m):
-    all_cores = frozenset(range(0, m))
+    all_cores = frozenset(range(1, m))
     to_look_at = [all_cores]
     while to_look_at:
         aff = to_look_at.pop()
@@ -51,6 +51,8 @@ def all_possible_affinities(m):
 
 def assign_random_laminar_affinities(ts, m, max_tries=10):
     all_picks = list(all_possible_affinities(m))
+
+    print all_picks[0], ts.utilization()
 
     # initially global
     for t in ts:
@@ -110,7 +112,8 @@ def to_json(ts):
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
 
 def store_taskset(m, n, u, seq, prefix=''):
-    ts = make_taskset(n, u * m)
+    print u * (m - 1)
+    ts = make_taskset(n, u * (m - 1))
     assign_random_laminar_affinities(ts, m)
     assign_arm_priorities(ts)
     fname = "%sapa-workload_m=%02d_n=%02d_u=%2d_seq=%02d.json" % \
@@ -119,17 +122,6 @@ def store_taskset(m, n, u, seq, prefix=''):
     f  = open(fname, 'w')
     f.write(to_json(ts))
     f.close()
-
-
-
-ts  = make_taskset(40, 3)
-assign_random_laminar_affinities(ts, 4)
-# assign_random_priorities(ts)
-assign_arm_priorities(ts)
-
-print 'Result:'
-print to_json(ts)
-
 
 for m in [4, 8, 48]:
     for n in set([m * 2, m * 4, m * 6, m * 8, m * 10]):
