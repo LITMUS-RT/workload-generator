@@ -30,14 +30,17 @@ then
     exit 1
 fi
 
-function cleanup()
+function cleanup_tracers()
 {{
     if [ -n "$TRACERS" ]
     then
         kill -SIGUSR1 $TRACERS
         wait $TRACERS
     fi
+}}
 
+function cleanup_tasks()
+{{
     if [ -n "$RTPID" ]
     then
         kill $RTPID
@@ -47,7 +50,8 @@ function cleanup()
 
 function die()
 {{
-    cleanup
+    cleanup_tasks
+    cleanup_tracers
     setsched Linux
     exit 1
 }}
@@ -92,7 +96,7 @@ RTPID="$RTPID $!"
 MAIN_EXP = """
 release_ts -f {num_tasks}
 wait $RTPID
-cleanup
+cleanup_tracers
 
 setsched Linux
 if [ "$?" -ne 0 ]
