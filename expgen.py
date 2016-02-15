@@ -15,7 +15,9 @@ PREAMBLE = """
 RTPID=""
 TRACERS=""
 
-echo Running {name}...
+DURATION={duration}
+
+echo Running {name} for $DURATION seconds...
 
 setsched Linux
 if [ "$?" -ne 0 ]
@@ -97,7 +99,7 @@ TRACERS="$TRACERS $!"
 
 
 RTSPIN = """
-taskset 0x{affinity_mask:x} rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} {duration} &
+taskset 0x{affinity_mask:x} rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
 """
 
@@ -122,7 +124,11 @@ def generate_sh(fname, data,
                 want_overheads=False,
                 want_schedule=False):
     f = open(fname + '.sh', 'w')
-    f.write(PREAMBLE.format(scheduler = scheduler, name = fname))
+    f.write(PREAMBLE.format(
+        scheduler = scheduler,
+        name = fname,
+        duration = duration
+    ))
     if want_debug:
         f.write(DEBUG_TRACE.format(name = fname))
     if want_overheads:
@@ -142,6 +148,7 @@ def generate_sh(fname, data,
         ))
     f.write(MAIN_EXP.format(num_tasks = len(data['tasks'])))
     f.close()
+
 
 def load_ts_from_json(fname):
     data = json.load(open(fname, 'r'))
