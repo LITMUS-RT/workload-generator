@@ -61,6 +61,7 @@ function cleanup_tracers()
     if [ -n "$TRACERS" ]
     then
         kill -SIGUSR1 $TRACERS
+        echo "Sent SIGUSR1 to stop tracers..."
         wait $TRACERS
     fi
 }}
@@ -70,6 +71,7 @@ function cleanup_tasks()
     if [ -n "$RTPID" ]
     then
         kill $RTPID
+        echo "Sent SIGTERM to stop experiment tasks..."
         wait $RTPID
     fi
 }}
