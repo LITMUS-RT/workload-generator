@@ -10,6 +10,10 @@ import json
 def us2ms(x):
     return x / 1000
 
+APA_SCHEDULERS = frozenset([
+    'LSA-FP-MP',
+])
+
 PREAMBLE = """
 #!/bin/bash
 RTPID=""
@@ -97,9 +101,9 @@ st_trace -s {name} &
 TRACERS="$TRACERS $!"
 """
 
+SET_AFFINITY = "taskset 0x{affinity_mask:x} "
 
-RTSPIN = """
-taskset 0x{affinity_mask:x} rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} $DURATION &
+RTSPIN = """rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
 """
 
@@ -129,6 +133,7 @@ def generate_sh(fname, data,
         name = fname,
         duration = duration
     ))
+
     if want_debug:
         f.write(DEBUG_TRACE.format(name = fname))
     if want_overheads:
@@ -138,6 +143,8 @@ def generate_sh(fname, data,
 
     for id in data['tasks']:
         t = data['tasks'][id]
+        if scheduler in APA_SCHEDULERS:
+            f.write(SET_AFFINITY.format(affinity_mask = t['affinity_mask']))
         f.write(RTSPIN.format(
             affinity_mask = t['affinity_mask'],
             prio          = t['priority'],
