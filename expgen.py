@@ -16,6 +16,12 @@ APA_SCHEDULERS = frozenset([
     'LSA-FP-MP',
 ])
 
+MP_SCHEDULERS = frozenset([
+    'LSA-FP-MP',
+    'G-FP-MP',
+    'G-EDF-MP',
+])
+
 PREAMBLE = """
 #!/bin/bash
 RTPID=""
@@ -23,28 +29,7 @@ TRACERS=""
 
 DURATION={duration}
 
-echo Running {name} for $DURATION seconds...
-
-setsched Linux
-if [ "$?" -ne 0 ]
-then
-    echo "Could not switch to Linux"
-    exit 1
-fi
-
-echo 0 > /proc/litmus/release_master
-if [ "$?" -ne 0 ]
-then
-    echo "Could not set release master"
-    exit 1
-fi
-
-setsched {scheduler}
-if [ "$?" -ne 0 ]
-then
-    echo "Scheduler {scheduler} could not be activated"
-    exit 1
-fi
+echo "Running {name} for $DURATION seconds..."
 
 function progress_wait()
 {{
@@ -88,10 +73,47 @@ function die()
 
 trap 'die' SIGUSR1 SIGTERM SIGINT
 
+# Auto-discover cache topology
+
+SOCKETS=`cat /sys/devices/system/cpu/*/topology/physical_package_id | sort | uniq`
+declare -A CPUS_IN_SOCKET
+for S in $SOCKETS
+do
+    CPUS_IN_SOCKET[$S]=`grep -l $S /sys/devices/system/cpu/*/topology/physical_package_id | egrep -o '[0-9]+'`
+done
+
+declare -a CORE
+M=0
+for S in $SOCKETS
+do
+	for C in ${{CPUS_IN_SOCKET[$S]}}
+	do
+		CORE[$M]=$C
+		M=$((M + 1))
+	done
+done
+"""
+
+SET_DSP = """
+echo {scheduling_core} > /proc/litmus/release_master
+if [ "$?" -ne 0 ]
+then
+    echo "Could not set release master"
+    die
+fi
+"""
+
+SET_SCHEDULER = """
+setsched {scheduler}
+if [ "$?" -ne 0 ]
+then
+    echo "Scheduler {scheduler} could not be activated"
+    die
+fi
 """
 
 DEBUG_TRACE = """
-cat /dev/litmus/log > {name}.log &
+{taskset}cat /dev/litmus/log > {name}.log &
 TRACERS="$TRACERS $!"
 """
 
@@ -102,7 +124,7 @@ then
     echo "Cannot find ft-trace-overheads in PATH"
     die
 fi
-ft-trace-overheads -s {name} &
+{taskset}ft-trace-overheads -s {name} &
 TRACERS="$TRACERS $!"
 """
 
@@ -113,13 +135,15 @@ then
     echo "Cannot find st_trace in PATH"
     die
 fi
-st_trace -s {name} &
+{taskset}st_trace -s {name} &
 TRACERS="$TRACERS $!"
 """
 
-SET_AFFINITY = "taskset 0x{affinity_mask:x} "
+SET_AFFINITY_MASK = "taskset 0x{affinity_mask:x} "
+SET_AFFINITY = "taskset -c {core_list} "
 
-RTSPIN = """rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} $DURATION &
+RTSPIN = """
+{taskset}rtspin -w -s {scale} -q {prio} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
 """
 
@@ -129,13 +153,6 @@ progress_wait $DURATION
 wait $RTPID
 echo All tasks finished.
 cleanup_tracers
-
-setsched Linux
-if [ "$?" -ne 0 ]
-then
-    echo "Could not switch back to Linux"
-    exit 1
-fi
 """
 
 def generate_sh(fname, data,
@@ -147,24 +164,51 @@ def generate_sh(fname, data,
                 want_schedule=False):
     f = open(fname + '.sh', 'w')
     f.write(PREAMBLE.format(
-        scheduler = scheduler,
         name = fname,
         duration = duration
     ))
+    f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
+
+    core = lambda n: '${CORE[%d]}' % n
+
+    if scheduler in MP_SCHEDULERS:
+        max_cpu = 0
+        for t in data['tasks'].itervalues():
+            max_cpu = max(max_cpu, max(t['affinity']))
+
+        trace_affinity = SET_AFFINITY.format(core_list = core(max_cpu))
+        f.write(SET_DSP.format(scheduling_core = core(max_cpu)))
+    else:
+        trace_affinity = ''
+
+    f.write(SET_SCHEDULER.format(scheduler = scheduler))
 
     if want_debug:
-        f.write(DEBUG_TRACE.format(name = fname))
+        f.write(DEBUG_TRACE.format(
+            name = fname,
+            taskset = trace_affinity
+        ))
     if want_overheads:
-        f.write(OVERHEAD_TRACE.format(name = fname))
+        f.write(OVERHEAD_TRACE.format(
+            name = fname,
+            taskset = trace_affinity
+        ))
     if want_schedule:
-        f.write(OVERHEAD_TRACE.format(name = fname))
+        f.write(OVERHEAD_TRACE.format(
+            name = fname,
+            taskset = trace_affinity
+        ))
 
     for id in data['tasks']:
         t = data['tasks'][id]
         if scheduler in APA_SCHEDULERS:
-            f.write(SET_AFFINITY.format(affinity_mask = t['affinity_mask']))
+            core_list = ",".join([core(x) for x in t['affinity']])
+            affinity = SET_AFFINITY.format(core_list = core_list)
+        else:
+            affinity = ''
+            #f.write(SET_AFFINITY.format(affinity_mask = t['affinity_mask']))
         f.write(RTSPIN.format(
-            affinity_mask = t['affinity_mask'],
+            taskset       = affinity,
             prio          = t['priority'],
             cost          = us2ms(t['cost']),
             period        = us2ms(t['period']),
@@ -175,6 +219,7 @@ def generate_sh(fname, data,
         num_tasks = len(data['tasks']),
         duration  = duration,
     ))
+    f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
     f.close()
     chmod(fname + '.sh', stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
 
