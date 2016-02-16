@@ -44,6 +44,18 @@ then
     exit 1
 fi
 
+function progress_wait()
+{{
+    COUNT=0
+    while (( $COUNT < $1 ))
+    do
+        echo -n ". "
+        sleep 1
+        COUNT=$((COUNT + 1))
+    done
+    echo
+}}
+
 function cleanup_tracers()
 {{
     if [ -n "$TRACERS" ]
@@ -109,7 +121,9 @@ RTPID="$RTPID $!"
 
 MAIN_EXP = """
 release_ts -f {num_tasks}
+progress_wait $DURATION
 wait $RTPID
+echo All tasks finished.
 cleanup_tracers
 
 setsched Linux
@@ -153,7 +167,10 @@ def generate_sh(fname, data,
             duration      = duration,
             scale         = scale,
         ))
-    f.write(MAIN_EXP.format(num_tasks = len(data['tasks'])))
+    f.write(MAIN_EXP.format(
+        num_tasks = len(data['tasks']),
+        duration  = duration,
+    ))
     f.close()
 
 
@@ -166,7 +183,7 @@ def main(args=sys.argv[1:]):
         print 'Processing %s' %fname
         ts = load_ts_from_json(fname)
         generate_sh(basename(fname).replace('.json', ''), ts,
-                    duration=30,
+                    duration=30, scheduler="G-FP-MP",
                     want_debug=False, want_overheads=True, want_schedule=False)
 
 
