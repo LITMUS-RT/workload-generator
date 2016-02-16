@@ -3,8 +3,10 @@
 from __future__ import division
 
 from os.path import basename
+from os import chmod
 
 import sys
+import stat
 import json
 
 def us2ms(x):
@@ -174,6 +176,7 @@ def generate_sh(fname, data,
         duration  = duration,
     ))
     f.close()
+    chmod(fname + '.sh', stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
 
 
 def load_ts_from_json(fname):
