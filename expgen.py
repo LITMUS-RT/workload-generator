@@ -95,6 +95,7 @@ done
 """
 
 SET_DSP = """
+echo "Setting processor {scheduling_core} to be the dedicated scheduling core."
 echo {scheduling_core} > /proc/litmus/release_master
 if [ "$?" -ne 0 ]
 then
@@ -175,6 +176,7 @@ def generate_sh(fname, data,
         max_cpu = 0
         for t in data['tasks'].itervalues():
             max_cpu = max(max_cpu, max(t['affinity']))
+        max_cpu += 1
 
         trace_affinity = SET_AFFINITY.format(core_list = core(max_cpu))
         f.write(SET_DSP.format(scheduling_core = core(max_cpu)))
@@ -206,7 +208,6 @@ def generate_sh(fname, data,
             affinity = SET_AFFINITY.format(core_list = core_list)
         else:
             affinity = ''
-            #f.write(SET_AFFINITY.format(affinity_mask = t['affinity_mask']))
         f.write(RTSPIN.format(
             taskset       = affinity,
             prio          = t['priority'],
@@ -230,11 +231,12 @@ def load_ts_from_json(fname):
 
 def main(args=sys.argv[1:]):
     for fname in args:
-        print 'Processing %s' %fname
+        name = basename(fname).replace('.json', '')
+        print 'Processing %s -> %s' % (fname, name + '.sh')
         ts = load_ts_from_json(fname)
-        generate_sh(basename(fname).replace('.json', ''), ts,
                     duration=30, scheduler="G-FP-MP",
                     want_debug=False, want_overheads=True, want_schedule=False)
+        generate_sh(name, ts,
 
 
 if __name__ == '__main__':
