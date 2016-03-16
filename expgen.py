@@ -2,8 +2,8 @@
 
 from __future__ import division
 
-from os.path import basename
-from os import chmod
+from os.path import basename, exists
+from os import chmod, makedirs
 
 import random
 import sys
@@ -27,8 +27,9 @@ def generate_sh(name, data,
                 want_overheads=False,
                 want_schedule=False,
                 default_wss=0,
-                background_wss=0):
-    fname = name + '.sh'
+                background_wss=0,
+                prefix=''):
+    fname = prefix + name + '.sh'
     f = open(fname, 'w')
     f.write(PREAMBLE.format(
         sched = scheduler,
@@ -126,10 +127,19 @@ def main(args=sys.argv[1:]):
         name = basename(fname).replace('.json', '')
         print 'Processing %s -> %s' % (fname, name + '.sh')
         ts = load_ts_from_json(fname)
-                    duration=30, scheduler="G-FP-MP",
-                    want_debug=False, want_overheads=True, want_schedule=False)
-        generate_sh(name, ts,
-
+        for sched in ['PSN-EDF', 'GSN-EDF', 'P-RES', 'P-FP', 'C-EDF', 'PFAIR']:
+            dir = '%s/' % sched
+            if not exists(dir):
+                makedirs(dir)
+            generate_sh(name, ts,
+                        scheduler=sched,
+                        duration=15,
+                        want_debug=False,
+                        want_overheads=True,
+                        want_schedule=False,
+                        background_wss=1500,
+                        default_wss=16,
+                        prefix=dir)
 
 if __name__ == '__main__':
     main()
