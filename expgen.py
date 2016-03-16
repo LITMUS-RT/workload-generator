@@ -16,6 +16,9 @@ from templates import *
 def us2ms(x):
     return x / 1000
 
+def core(n):
+    return '${CORE[%d]}' % n
+
 def generate_sh(name, data,
                 duration=30,
                 scale=0.95,
@@ -33,8 +36,6 @@ def generate_sh(name, data,
         duration = duration
     ))
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
-
-    core = lambda n: '${CORE[%d]}' % n
 
     if scheduler in MP_SCHEDULERS:
         max_cpu = 0
