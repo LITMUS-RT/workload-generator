@@ -8,7 +8,7 @@ BG_TASKS=""
 
 DURATION={duration}
 
-echo "Running {name} for $DURATION seconds..."
+echo "Running {name} for $DURATION seconds under {sched}..."
 
 function progress_wait()
 {{

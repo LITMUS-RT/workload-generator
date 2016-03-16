@@ -28,6 +28,7 @@ def generate_sh(name, data,
     fname = name + '.sh'
     f = open(fname, 'w')
     f.write(PREAMBLE.format(
+        sched = scheduler,
         name = name,
         duration = duration
     ))
