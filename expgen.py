@@ -5,6 +5,7 @@ from __future__ import division
 from os.path import basename
 from os import chmod
 
+import random
 import sys
 import stat
 import json
@@ -15,16 +16,19 @@ from templates import *
 def us2ms(x):
     return x / 1000
 
-def generate_sh(fname, data,
+def generate_sh(name, data,
                 duration=30,
                 scale=0.95,
                 scheduler='LSA-FP-MP',
                 want_debug=False,
                 want_overheads=False,
-                want_schedule=False):
-    f = open(fname + '.sh', 'w')
+                want_schedule=False,
+                default_wss=0,
+                background_wss=0):
+    fname = name + '.sh'
+    f = open(fname, 'w')
     f.write(PREAMBLE.format(
-        name = fname,
+        name = name,
         duration = duration
     ))
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
@@ -43,6 +47,9 @@ def generate_sh(fname, data,
         trace_affinity = ''
 
     f.write(SET_SCHEDULER.format(scheduler = scheduler))
+
+    if background_wss > 0:
+        f.write(BACKGROUND_WORKLOAD.format(wss_in_pages = background_wss))
 
     if want_debug:
         f.write(DEBUG_TRACE.format(
@@ -67,13 +74,37 @@ def generate_sh(fname, data,
             affinity = SET_AFFINITY.format(core_list = core_list)
         else:
             affinity = ''
+        if scheduler in FIXED_PRIORITY_SCHEDULERS:
+            prio = '-q %s' % t['priority']
+        else:
+            prio =''
+        if scheduler in RESERVATION_SCHEDULERS:
+            reservation = '-R'
+        else:
+            reservation = ''
+        if scheduler in PARTITIONED_SCHEDULERS:
+            partition = '-p %s' % core(random.choice(t['affinity']))
+        else:
+            partition = ''
+
+        wss = default_wss
+        if 'wss' in t:
+            wss = t['wss']
+        if wss:
+            wss = '-m %s' % wss
+        else:
+            wss = ''
+
         f.write(RTSPIN.format(
             taskset       = affinity,
-            prio          = t['priority'],
+            prio          = prio,
             cost          = us2ms(t['cost']),
             period        = us2ms(t['period']),
             duration      = duration,
             scale         = scale,
+            reservation   = reservation,
+            partition     = partition,
+            wss           = wss,
         ))
     f.write(MAIN_EXP.format(
         num_tasks = len(data['tasks']),
@@ -81,7 +112,7 @@ def generate_sh(fname, data,
     ))
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
     f.close()
-    chmod(fname + '.sh', stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
+    chmod(fname, stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
 
 
 def load_ts_from_json(fname):
