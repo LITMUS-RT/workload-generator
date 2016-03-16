@@ -123,8 +123,33 @@ def store_taskset(m, n, u, seq, prefix=''):
     f.write(to_json(ts))
     f.close()
 
-for m in [4, 8, 48]:
-    for n in set([m * 2, m * 4, m * 6, m * 8, m * 10]):
-        for u in [0.75, 0.85, 0.95]:
-            for seq in xrange(10):
-                store_taskset(m, n, u, seq, prefix='tasksets/')
+# for m in [4, 8, 48]:
+#     for n in set([m * 2, m * 4, m * 6, m * 8, m * 10]):
+#         for u in [0.75, 0.85, 0.95]:
+#             for seq in xrange(10):
+#                 store_taskset(m, n, u, seq, prefix='tasksets/')
+
+
+def store_partitioned_taskset(m, n, u, seq, prefix=''):
+    print "%d x %.2f @ %d" % (m, u, n)
+    ts = TaskSystem()
+    for core in xrange(m):
+        per_core = make_taskset(n, u)
+        for t in per_core:
+            t.partition = core
+            t.affinity = set([core])
+        ts += per_core
+
+    assign_arm_priorities(ts)
+    fname = "%spart-workload_m=%02d_n=%02d_u=%2d_seq=%02d.json" % \
+        (prefix, m, n * m, int(100 * u), seq)
+    print fname
+    f  = open(fname, 'w')
+    f.write(to_json(ts))
+    f.close()
+
+for m in [4]:
+    for n in set([2, 4, 6, 8, 10]):
+        for u in [0.45, 0.65, 0.85]:
+            for seq in xrange(4):
+                store_partitioned_taskset(m, n, u, seq, prefix='partitioned/')
