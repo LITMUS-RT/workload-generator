@@ -4,6 +4,7 @@ PREAMBLE = """
 #!/bin/bash
 RTPID=""
 TRACERS=""
+BG_TASKS=""
 
 DURATION={duration}
 
@@ -31,6 +32,16 @@ function cleanup_tracers()
     fi
 }}
 
+function cleanup_background()
+{{
+    if [ -n "$BG_TASKS" ]
+    then
+        kill -SIGTERM $BG_TASKS
+        echo "Sent SIGTERM to stop background tasks..."
+        wait $BG_TASKS
+    fi
+}}
+
 function cleanup_tasks()
 {{
     if [ -n "$RTPID" ]
@@ -43,6 +54,7 @@ function cleanup_tasks()
 
 function die()
 {{
+    cleanup_background
     cleanup_tasks
     cleanup_tracers
     setsched Linux
@@ -131,5 +143,15 @@ release_ts -f {num_tasks}
 progress_wait $DURATION
 wait $RTPID
 echo All tasks finished.
+cleanup_background
 cleanup_tracers
+"""
+
+BACKGROUND_WORKLOAD="""
+NUM_CPUS=`getconf _NPROCESSORS_ONLN`
+for core in `seq 1 $NUM_CPUS`
+do
+        taskset -c $(($core - 1)) nice rtspin -B -m {wss_in_pages} &
+        BG_TASKS="$BG_TASKS $!"
+done
 """
