@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-PREAMBLE = """
-#!/bin/bash
+PREAMBLE = """#!/bin/bash
 RTPID=""
 TRACERS=""
 BG_TASKS=""
