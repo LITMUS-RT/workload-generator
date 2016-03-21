@@ -114,8 +114,15 @@ then
     echo "Cannot find ft-trace-overheads in PATH"
     die
 fi
-{taskset}ft-trace-overheads -s {name} &
+echo -n "Launching Feather-Trace overhead tracer..."
+FT_OUT=`mktemp`
+{taskset}ft-trace-overheads -s {name} > "$FT_OUT" &
 TRACERS="$TRACERS $!"
+while ! grep -q 'Waiting for SIGUSR1' "$FT_OUT"
+do
+    sleep 0.1
+done
+echo ' ok.'
 """
 
 SCHEDULE_TRACE = """
@@ -125,8 +132,15 @@ then
     echo "Cannot find st_trace in PATH"
     die
 fi
-{taskset}st_trace -s {name} &
+echo -n "Launching sched_trace scheduler tracer..."
+ST_OUT=`mktemp`
+{taskset}st_trace -s {name} > "$ST_OUT" &
 TRACERS="$TRACERS $!"
+while ! grep -q 'Waiting for SIGUSR1' "$ST_OUT"
+do
+    sleep 0.1
+done
+echo ' ok.'
 """
 
 SET_AFFINITY_MASK = "taskset 0x{affinity_mask:x} "
