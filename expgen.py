@@ -65,7 +65,7 @@ def generate_sh(name, data,
             taskset = trace_affinity
         ))
     if want_schedule:
-        f.write(OVERHEAD_TRACE.format(
+        f.write(SCHEDULE_TRACE.format(
             name = name,
             taskset = trace_affinity
         ))
