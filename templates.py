@@ -62,6 +62,14 @@ function die()
 
 trap 'die' SIGUSR1 SIGTERM SIGINT
 
+# Make sure the scheduler that we want to run actually is available.
+
+if ! grep -q {sched} /proc/litmus/plugins/loaded 2>/dev/null
+then
+    echo "Error: scheduler {sched} is not supported by this kernel."
+    die
+fi
+
 # Auto-discover cache topology
 
 SOCKETS=`cat /sys/devices/system/cpu/*/topology/physical_package_id | sort | uniq`
