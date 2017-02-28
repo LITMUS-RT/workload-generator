@@ -2,6 +2,9 @@
 
 from __future__ import division
 
+import argparse
+import sys
+
 from os.path import basename, exists
 from os import chmod, makedirs
 
@@ -122,24 +125,71 @@ def load_ts_from_json(fname):
     data = json.load(open(fname, 'r'))
     return data
 
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='LITMUS^RT setup script generator')
+
+    p.add_argument(
+        'files', nargs='*', type=str, metavar='input-files',
+        help='task set descriptions in JSON format')
+
+    p.add_argument(
+        '-S', '--trace-schedule', action='store_true', dest='want_sched_trace',
+        default=False,
+        help='Record the schedule with sched_trace')
+    p.add_argument(
+        '-O', '--trace-overheads', action='store_true', dest='want_overheads',
+        default=False,
+        help='Record runtime overheads with Feather-Trace')
+    p.add_argument(
+        '-D', '--trace-debug-log', action='store_true', dest='want_debug_trace',
+        default=False,
+        help='Record TRACE() messages [debug feature]')
+
+    p.add_argument(
+        '-t', '--duration', type=float, dest='duration', default=10,
+        help='how long should the experiment run?')
+    p.add_argument(
+        '-w', '--wss', type=int, dest='wss', default=16,
+        help='default working set size of RT tasks')
+    p.add_argument(
+        '-b', '--bg-memory', type=int, dest='bg_wss', default=1024,
+        help='working set size of background cache-thrashing tasks')
+    p.add_argument(
+        '-p', '--scheduler', type=str, dest='plugin', default='P-FP',
+        help='Which scheduler plugin to use?')
+
+    p.add_argument(
+        '--outdir', type=str, dest='prefix', default='.',
+        help='Where to store the generated script[s]?')
+
+
+    return p.parse_args()
+
 def main(args=sys.argv[1:]):
-    for fname in args:
+    options = parse_args()
+
+    if not exists(options.prefix):
+        makedirs(options.prefix)
+
+    for fname in options.files:
         name = basename(fname).replace('.json', '')
         print 'Processing %s -> %s' % (fname, name + '.sh')
-        ts = load_ts_from_json(fname)
-        for sched in ['PSN-EDF', 'GSN-EDF', 'P-RES', 'P-FP', 'C-EDF', 'PFAIR']:
-            dir = '%s/' % sched
-            if not exists(dir):
-                makedirs(dir)
+        try:
+            ts = load_ts_from_json(fname)
             generate_sh(name, ts,
-                        scheduler=sched,
-                        duration=15,
-                        want_debug=False,
-                        want_overheads=True,
-                        want_schedule=False,
-                        background_wss=1500,
-                        default_wss=16,
-                        prefix=dir)
+                        scheduler=options.plugin,
+                        duration=options.duration,
+                        want_debug=options.want_debug_trace,
+                        want_overheads=options.want_overhead_trace,
+                        want_schedule=options.want_sched_trace,
+                        background_wss=options.bg_wss,
+                        default_wss=options.wss,
+                        prefix=options.prefix)
+        except IOError, err:
+            print '%s: %s' % (fname, err)
+        except ValueError, err:
+            print '%s: %s' % (fname, err)
 
 if __name__ == '__main__':
     main()
