@@ -2,6 +2,12 @@
 
 from __future__ import division
 
+import argparse
+import sys
+
+from os.path import exists, dirname
+from os import makedirs
+
 import random
 import json
 
@@ -103,7 +109,7 @@ def to_json(ts):
             'cost'     : t.cost,
             'period'   : t.period,
             'affinity' : list(t.affinity),
-            'affinity_mask' : to_hex(t.affinity),
+#             'affinity_mask' : to_hex(t.affinity),
             'priority' : t.priority,
         }
     data = {
@@ -118,20 +124,14 @@ def store_taskset(m, n, u, seq, prefix=''):
     assign_arm_priorities(ts)
     fname = "%sapa-workload_m=%02d_n=%02d_u=%2d_seq=%02d.json" % \
         (prefix, m, n, int(100 * u), seq)
-    print fname
+    print '=>', fname
     f  = open(fname, 'w')
     f.write(to_json(ts))
     f.close()
 
-# for m in [4, 8, 48]:
-#     for n in set([m * 2, m * 4, m * 6, m * 8, m * 10]):
-#         for u in [0.75, 0.85, 0.95]:
-#             for seq in xrange(10):
-#                 store_taskset(m, n, u, seq, prefix='tasksets/')
-
-
 def store_partitioned_taskset(m, n, u, seq, prefix=''):
-    print "%d x %.2f @ %d" % (m, u, n)
+    print "[partitioned, %d cores, %.2f utilization, and %d tasks per core]" \
+         % (m, u, n)
     ts = TaskSystem()
     for core in xrange(m):
         per_core = make_taskset(n, u)
@@ -143,13 +143,50 @@ def store_partitioned_taskset(m, n, u, seq, prefix=''):
     assign_arm_priorities(ts)
     fname = "%spart-workload_m=%02d_n=%02d_u=%2d_seq=%02d.json" % \
         (prefix, m, n * m, int(100 * u), seq)
-    print fname
+    print '=>', fname
     f  = open(fname, 'w')
     f.write(to_json(ts))
     f.close()
 
-for m in [4]:
-    for n in set([2, 4, 6, 8, 10]):
-        for u in [0.45, 0.65, 0.85]:
-            for seq in xrange(4):
-                store_partitioned_taskset(m, n, u, seq, prefix='partitioned/')
+
+def parse_args():
+    p = argparse.ArgumentParser(
+        description='LITMUS^RT workload generator')
+
+    p.add_argument(
+        '--prefix', type=str, dest='prefix', default='',
+        help='Prefix for the generated file[s]')
+
+    p.add_argument(
+        '-m', '--num-cores', type=int, nargs='*', dest='ncores', default=[1],
+        help='processor counts to consider [multiple possible]')
+    p.add_argument(
+        '-n', '--tasks-per-core', type=int, nargs='*', dest='ntasks', default=[5],
+        help='task counts to consider [multiple possible]')
+    p.add_argument(
+        '-u', '--per-core-utilization', type=float, nargs='*', dest='utils',
+        default=[0.5],
+        help='processor utilizations to consider [multiple possible]')
+
+    p.add_argument(
+        '-c', '--count', type=int, dest='count', default=1,
+        help='how many task sets per #cores, #tasks, and util')
+
+    return p.parse_args()
+
+def main(args=sys.argv[1:]):
+    options = parse_args()
+
+    prefix_dir = dirname(options.prefix)
+    if prefix_dir and not exists(prefix_dir):
+        makedirs(prefix_dir)
+
+    for m in options.ncores:
+        for n in options.ntasks:
+            for u in options.utils:
+                for seq in xrange(options.count):
+                    store_partitioned_taskset(m, n, u, seq,
+                        prefix=options.prefix)
+
+if __name__ == '__main__':
+    main()
