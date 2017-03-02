@@ -5,7 +5,7 @@ from __future__ import division
 import argparse
 import sys
 
-from os.path import basename, exists
+from os.path import basename, exists, dirname
 from os import chmod, makedirs
 
 import random
@@ -160,7 +160,7 @@ def parse_args():
         help='Which scheduler plugin to use?')
 
     p.add_argument(
-        '--outdir', type=str, dest='prefix', default='.',
+        '--prefix', type=str, dest='prefix', default='./',
         help='Where to store the generated script[s]?')
 
 
@@ -169,8 +169,9 @@ def parse_args():
 def main(args=sys.argv[1:]):
     options = parse_args()
 
-    if not exists(options.prefix):
-        makedirs(options.prefix)
+    prefix_dir = dirname(options.prefix)
+    if prefix_dir and not exists(prefix_dir):
+        makedirs(prefix_dir)
 
     for fname in options.files:
         name = basename(fname).replace('.json', '')
@@ -181,7 +182,7 @@ def main(args=sys.argv[1:]):
                         scheduler=options.plugin,
                         duration=options.duration,
                         want_debug=options.want_debug_trace,
-                        want_overheads=options.want_overhead_trace,
+                        want_overheads=options.want_overheads,
                         want_schedule=options.want_sched_trace,
                         background_wss=options.bg_wss,
                         default_wss=options.wss,
