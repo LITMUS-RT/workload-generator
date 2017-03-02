@@ -22,15 +22,27 @@ def us2ms(x):
 def core(n):
     return '${CORE[%d]}' % n
 
+def get_affinity(tsk_json):
+    if 'affinity' in tsk_json:
+        return tsk_json['affinity']
+    elif 'partition' in tsk_json:
+        return [tsk_json['partition']]
+    elif 'core' in tsk_json:
+        return [tsk_json['core']]
+    else:
+        # no affinity given -> default to core zero
+        return [0]
+
 def generate_sh(name, data,
                 duration=30,
                 scale=0.95,
-                scheduler='LSA-FP-MP',
+                scheduler='P-FP',
                 want_debug=False,
                 want_overheads=False,
                 want_schedule=False,
                 default_wss=0,
                 background_wss=0,
+                service_core=None,
                 prefix=''):
     fname = prefix + name + '.sh'
     f = open(fname, 'w')
@@ -42,13 +54,15 @@ def generate_sh(name, data,
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
 
     if scheduler in MP_SCHEDULERS:
-        max_cpu = 0
-        for t in data['tasks'].itervalues():
-            max_cpu = max(max_cpu, max(t['affinity']))
-        max_cpu += 1
+        if service_core is None:
+            max_cpu = 0
+            for t in data['tasks'].itervalues():
+                max_cpu = max(max_cpu, max(get_affinity(t)))
+            max_cpu += 1
+            service_core = max_cpu
 
-        trace_affinity = SET_AFFINITY.format(core_list = core(max_cpu))
-        f.write(SET_DSP.format(scheduling_core = core(max_cpu)))
+        trace_affinity = SET_AFFINITY.format(core_list = core(service_core))
+        f.write(SET_DSP.format(scheduling_core = core(service_core)))
     else:
         trace_affinity = ''
 
@@ -76,7 +90,7 @@ def generate_sh(name, data,
     for id in data['tasks']:
         t = data['tasks'][id]
         if scheduler in APA_SCHEDULERS:
-            core_list = ",".join([core(x) for x in t['affinity']])
+            core_list = ",".join([core(x) for x in get_affinity(t)])
             affinity = SET_AFFINITY.format(core_list = core_list)
         else:
             affinity = ''
@@ -89,7 +103,7 @@ def generate_sh(name, data,
         else:
             reservation = ''
         if scheduler in PARTITIONED_SCHEDULERS:
-            partition = '-p %s' % core(random.choice(t['affinity']))
+            partition = '-p %s' % core(random.choice(get_affinity(t)))
         else:
             partition = ''
 
@@ -158,6 +172,10 @@ def parse_args():
     p.add_argument(
         '-p', '--scheduler', type=str, dest='plugin', default='P-FP',
         help='Which scheduler plugin to use?')
+    p.add_argument(
+        '--dsp', type=int, dest='service_core', default=None,
+        help='Which core is the dedicated service processor? ' +
+            'Relevant only for message-passing plugins.')
 
     p.add_argument(
         '--prefix', type=str, dest='prefix', default='./',
@@ -175,7 +193,7 @@ def main(args=sys.argv[1:]):
 
     for fname in options.files:
         name = basename(fname).replace('.json', '')
-        print 'Processing %s -> %s' % (fname, name + '.sh')
+        print 'Processing %s -> %s' % (fname, options.prefix + name + '.sh')
         try:
             ts = load_ts_from_json(fname)
             generate_sh(name, ts,
@@ -186,6 +204,7 @@ def main(args=sys.argv[1:]):
                         want_schedule=options.want_sched_trace,
                         background_wss=options.bg_wss,
                         default_wss=options.wss,
+                        service_core=options.service_core,
                         prefix=options.prefix)
         except IOError, err:
             print '%s: %s' % (fname, err)
