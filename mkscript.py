@@ -87,8 +87,7 @@ def generate_sh(name, data,
             taskset = trace_affinity
         ))
 
-    for id in data['tasks']:
-        t = data['tasks'][id]
+    for t in data['tasks']:
         if scheduler in APA_SCHEDULERS:
             core_list = ",".join([core(x) for x in get_affinity(t)])
             affinity = SET_AFFINITY.format(core_list = core_list)
