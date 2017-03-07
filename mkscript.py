@@ -76,16 +76,17 @@ def generate_sh(name, data,
             name = name,
             taskset = trace_affinity
         ))
-    if want_overheads:
-        f.write(OVERHEAD_TRACE.format(
-            name = name,
-            taskset = trace_affinity
-        ))
     if want_schedule:
         f.write(SCHEDULE_TRACE.format(
             name = name,
             taskset = trace_affinity
         ))
+
+    num_tasks = len(data['tasks'])
+
+    f.write(TASK_LAUNCH_PREFIX.format(
+        num_tasks = num_tasks
+    ))
 
     for t in data['tasks']:
         if scheduler in APA_SCHEDULERS:
@@ -126,6 +127,18 @@ def generate_sh(name, data,
             wss           = wss,
             tid           = t['id'],
         ))
+
+    f.write(TASK_LAUNCH_SUFFIX.format(
+        num_tasks = num_tasks
+    ))
+
+    if want_overheads:
+        f.write(OVERHEAD_TRACE.format(
+            num_tasks = num_tasks,
+            name = name,
+            taskset = trace_affinity
+        ))
+
     f.write(MAIN_EXP.format(
         num_tasks = len(data['tasks']),
         duration  = duration,

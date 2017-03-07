@@ -121,11 +121,13 @@ fi
 """
 
 DEBUG_TRACE = """
+echo "Launching TRACE() debug tracer."
 {taskset}cat /dev/litmus/log > {name}.log &
 TRACERS="$TRACERS $!"
 """
 
 OVERHEAD_TRACE = """
+# Make sure we have access to the ft-trace-overheads wrapper script
 which ft-trace-overheads > /dev/null
 if [ "$?" -ne 0 ]
 then
@@ -150,7 +152,7 @@ then
     echo "Cannot find st_trace in PATH"
     die
 fi
-echo -n "Launching sched_trace scheduler tracer..."
+echo -n "Launching sched_trace schedule tracer..."
 ST_OUT=`mktemp`
 {taskset}st_trace -s {name} > "$ST_OUT" &
 TRACERS="$TRACERS $!"
@@ -164,10 +166,20 @@ echo ' ok.'
 SET_AFFINITY_MASK = "taskset 0x{affinity_mask:x} "
 SET_AFFINITY = "taskset -c {core_list} "
 
+TASK_LAUNCH_PREFIX = """
+echo -n "Launching {num_tasks} real-time tasks..."
+"""
+
 RTSPIN = """
 # Task {tid}
 {taskset}rtspin -w -s {scale} {partition} {prio} {reservation} {wss} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
+"""
+
+TASK_LAUNCH_SUFFIX = """
+# Wait for tasks to finish launching
+release_ts -W {num_tasks}
+echo ' ok.'
 """
 
 MAIN_EXP = """
