@@ -155,6 +155,7 @@ SET_AFFINITY_MASK = "taskset 0x{affinity_mask:x} "
 SET_AFFINITY = "taskset -c {core_list} "
 
 RTSPIN = """
+# Task {tid}
 {taskset}rtspin -w -s {scale} {partition} {prio} {reservation} {wss} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
 """

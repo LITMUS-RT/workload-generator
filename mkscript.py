@@ -124,6 +124,7 @@ def generate_sh(name, data,
             reservation   = reservation,
             partition     = partition,
             wss           = wss,
+            tid           = t['id'],
         ))
     f.write(MAIN_EXP.format(
         num_tasks = len(data['tasks']),
