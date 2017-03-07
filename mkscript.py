@@ -143,6 +143,12 @@ def parse_args():
     p = argparse.ArgumentParser(
         description='LITMUS^RT setup script generator')
 
+    def pos_int(s):
+        v = int(s)
+        if v <= 0:
+             raise argparse.ArgumentTypeError("must be positive")
+        return v
+
     p.add_argument(
         'files', nargs='*', type=str, metavar='input-files',
         help='task set descriptions in JSON format')
@@ -161,19 +167,19 @@ def parse_args():
         help='Record TRACE() messages [debug feature]')
 
     p.add_argument(
-        '-t', '--duration', type=float, dest='duration', default=10,
+        '-t', '--duration', type=pos_int, dest='duration', default=10,
         help='how long should the experiment run?')
     p.add_argument(
-        '-w', '--wss', type=int, dest='wss', default=16,
-        help='default working set size of RT tasks')
+        '-w', '--wss', type=pos_int, dest='wss', default=16,
+        help='default working set size of RT tasks [in KiB]')
     p.add_argument(
-        '-b', '--bg-memory', type=int, dest='bg_wss', default=1024,
-        help='working set size of background cache-thrashing tasks')
+        '-b', '--bg-memory', type=pos_int, dest='bg_wss', default=1024,
+        help='working set size of background cache-thrashing tasks [in KiB]')
     p.add_argument(
         '-p', '--scheduler', type=str, dest='plugin', default='P-FP',
         help='Which scheduler plugin to use?')
     p.add_argument(
-        '--dsp', type=int, dest='service_core', default=None,
+        '--dsp', type=pos_int, dest='service_core', default=None,
         help='Which core is the dedicated service processor? ' +
             'Relevant only for message-passing plugins.')
 
