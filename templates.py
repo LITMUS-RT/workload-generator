@@ -70,6 +70,16 @@ then
     die
 fi
 
+# Make sure we have access to liblitmus
+
+which release_ts > /dev/null
+if [ "$?" -ne 0 ]
+then
+    echo "Cannot find release_ts in PATH."
+    echo "Make sure liblitmus is part of the shell's search path."
+    die
+fi
+
 # Auto-discover cache topology
 
 SOCKETS=`cat /sys/devices/system/cpu/*/topology/physical_package_id | sort | uniq`
