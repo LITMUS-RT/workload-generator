@@ -1,21 +1,24 @@
 #!/usr/bin/env python
 
-from __future__ import division
-
-APA_SCHEDULERS = frozenset([
-    'LSA-FP-MP',
+PARTITIONED_SCHEDULERS = frozenset([
+    'PSN-EDF',
+    'P-FP',
+    'P-RES',
+    'ESPRESSO',
 ])
 
 RESERVATION_SCHEDULERS = frozenset([
     'P-RES',
+    'ESPRESSO',
 ])
 
-PARTITIONED_SCHEDULERS = frozenset([
-    'P-RES',
-    'PSN-EDF',
-    'P-FP',
-# not really partitioned, but can be used as such
+CLUSTERED_SCHEDULERS = frozenset([
     'C-EDF',
+    'PFAIR',
+])
+
+APA_SCHEDULERS = frozenset([
+    'LSA-FP-MP',
 ])
 
 FIXED_PRIORITY_SCHEDULERS = frozenset([
