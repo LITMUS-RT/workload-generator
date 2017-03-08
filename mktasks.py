@@ -273,6 +273,10 @@ def main(args=sys.argv[1:]):
 
     for m in options.ncores:
         for u in options.utils:
+            if u > 1:
+                # A per-core utilization > 1 doesn't make sense; assume the
+                # user meant percent.
+                u = u/100
             for seq in xrange(options.count):
                 for n in options.ntasks:
                     mktasks(m, u, n,
