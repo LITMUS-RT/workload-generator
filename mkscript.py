@@ -187,7 +187,7 @@ def parse_args():
         help='default working set size of RT tasks [in KiB]')
     p.add_argument(
         '-b', '--bg-memory', type=pos_int, dest='bg_wss', default=1024,
-        help='working set size of background cache-thrashing tasks [in KiB]')
+        help='working set size of background cache-thrashing tasks [in 4K pages]')
     p.add_argument(
         '-p', '--scheduler', type=str, dest='plugin', default='P-FP',
         help='Which scheduler plugin to use?')

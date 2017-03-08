@@ -193,9 +193,11 @@ cleanup_tracers
 
 BACKGROUND_WORKLOAD="""
 NUM_CPUS=`getconf _NPROCESSORS_ONLN`
+echo -n "Launching $NUM_CPUS background tasks with a WSS of {wss_in_pages} pages each..."
 for core in `seq 1 $NUM_CPUS`
 do
         taskset -c $(($core - 1)) nice rtspin -B -m {wss_in_pages} &
         BG_TASKS="$BG_TASKS $!"
 done
+echo " ok."
 """
