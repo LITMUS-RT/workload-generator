@@ -219,6 +219,15 @@ RTSPIN = """
 RTPID="$RTPID $!"
 """
 
+RT_LAUNCH = """
+# Task {tid}
+{taskset}rt_launch -w {partition} {prio} {reservation} {cost:.2f} {period:.2f} -- {cmd} &
+RTPID="$RTPID $!"
+# Launch killer task to timeout the launched command
+(sleep $DURATION; kill $! 2>/dev/null) &
+RTPID="$RTPID $!"
+"""
+
 TASK_LAUNCH_SUFFIX = """
 # Wait for tasks to finish launching
 release_ts -W {num_tasks}

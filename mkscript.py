@@ -45,6 +45,7 @@ def generate_sh(name, data,
                 background_wss=0,
                 service_core=None,
                 want_nanosleep=False,
+                binaries=None,
                 prefix=''):
     fname = prefix + name + '.sh'
     f = open(fname, 'w')
@@ -121,7 +122,16 @@ def generate_sh(name, data,
         if want_nanosleep:
             timer_opt = '-T'
 
-        f.write(RTSPIN.format(
+        binary = None
+        if 'cmd' in t:
+            binary = t['cmd']
+        if not binary and binaries:
+            binary = random.choice(binaries)
+        if not binary or binary == 'rtspin':
+            tmpl = RTSPIN
+        else:
+            tmpl = RT_LAUNCH
+        f.write(tmpl.format(
             taskset       = affinity,
             prio          = prio,
             cost          = us2ms(t['cost']),
@@ -133,6 +143,7 @@ def generate_sh(name, data,
             wss           = wss,
             timer         = timer_opt,
             tid           = t['id'],
+            cmd           = binary,
         ))
 
     f.write(TASK_LAUNCH_SUFFIX.format(
@@ -217,6 +228,10 @@ def parse_args():
             'Relevant only for message-passing plugins.')
 
     p.add_argument(
+        '--binaries', type=str, nargs='*', dest='binaries', default=None,
+        help='Which programs to launch as real-time tasks? [default: rtspin]')
+
+    p.add_argument(
         '--prefix', type=str, dest='prefix', default='./',
         help='Where to store the generated script[s]?')
 
@@ -246,6 +261,7 @@ def main(args=sys.argv[1:]):
                         default_wss=options.wss,
                         service_core=options.service_core,
                         want_nanosleep=options.use_nanosleep,
+                        binaries=options.binaries,
                         prefix=options.prefix)
         except IOError, err:
             print '%s: %s' % (fname, err)
