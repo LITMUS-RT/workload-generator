@@ -44,6 +44,7 @@ def generate_sh(name, data,
                 default_wss=0,
                 background_wss=0,
                 service_core=None,
+                want_nanosleep=False,
                 prefix=''):
     fname = prefix + name + '.sh'
     f = open(fname, 'w')
@@ -116,6 +117,10 @@ def generate_sh(name, data,
         else:
             wss = ''
 
+        timer_opt = ''
+        if want_nanosleep:
+            timer_opt = '-T'
+
         f.write(RTSPIN.format(
             taskset       = affinity,
             prio          = prio,
@@ -126,6 +131,7 @@ def generate_sh(name, data,
             reservation   = reservation,
             partition     = partition,
             wss           = wss,
+            timer         = timer_opt,
             tid           = t['id'],
         ))
 
@@ -196,6 +202,10 @@ def parse_args():
         '-w', '--wss', type=pos_int, dest='wss', default=16,
         help='default working set size of RT tasks [in KiB]')
     p.add_argument(
+        '-s', '--use-nanosleep', action='store_true', dest='use_nanosleep',
+        default=False,
+        help='make rtspin use clock_nanosleep()')
+    p.add_argument(
         '-b', '--bg-memory', type=pos_int, dest='bg_wss', default=1024,
         help='working set size of background cache-thrashing tasks [in 4K pages]')
     p.add_argument(
@@ -235,6 +245,7 @@ def main(args=sys.argv[1:]):
                         background_wss=options.bg_wss,
                         default_wss=options.wss,
                         service_core=options.service_core,
+                        want_nanosleep=options.use_nanosleep,
                         prefix=options.prefix)
         except IOError, err:
             print '%s: %s' % (fname, err)

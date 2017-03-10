@@ -215,7 +215,7 @@ echo -n "Launching {num_tasks} real-time tasks..."
 
 RTSPIN = """
 # Task {tid}
-{taskset}rtspin -w -s {scale} {partition} {prio} {reservation} {wss} {cost:.2f} {period:.2f} $DURATION &
+{taskset}rtspin -w -s {scale} {partition} {prio} {reservation} {wss} {timer} {cost:.2f} {period:.2f} $DURATION &
 RTPID="$RTPID $!"
 """
 
