@@ -39,6 +39,7 @@ def generate_sh(name, data,
                 scheduler='P-FP',
                 want_debug=False,
                 want_overheads=False,
+                process_overheads=False,
                 want_schedule=False,
                 default_wss=0,
                 background_wss=0,
@@ -144,6 +145,10 @@ def generate_sh(name, data,
         duration  = duration,
     ))
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
+
+    if process_overheads:
+        f.write(PROCESS_OVERHEAD_TRACE.format(name = name))
+
     f.close()
     chmod(fname, stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
 
@@ -175,9 +180,14 @@ def parse_args():
         default=False,
         help='Record runtime overheads with Feather-Trace')
     p.add_argument(
+        '-P', '--process-overheads', action='store_true', dest='process_overheads',
+        default=False,
+        help='Extract overhead samples form Feather-Trace trace files')
+    p.add_argument(
         '-D', '--trace-debug-log', action='store_true', dest='want_debug_trace',
         default=False,
         help='Record TRACE() messages [debug feature]')
+
 
     p.add_argument(
         '-t', '--duration', type=pos_int, dest='duration', default=10,
@@ -220,6 +230,7 @@ def main(args=sys.argv[1:]):
                         duration=options.duration,
                         want_debug=options.want_debug_trace,
                         want_overheads=options.want_overheads,
+                        process_overheads=options.process_overheads,
                         want_schedule=options.want_sched_trace,
                         background_wss=options.bg_wss,
                         default_wss=options.wss,

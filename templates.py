@@ -145,6 +145,49 @@ done
 echo ' ok.'
 """
 
+PROCESS_OVERHEAD_TRACE = """
+which ft-sort-traces > /dev/null
+if [ "$?" -ne 0 ]
+then
+    echo "Cannot find ft-sort-traces in PATH"
+    die
+fi
+
+function fail() {{
+    echo
+    echo "Overhead processing failed."
+    exit 2
+}}
+
+echo "**** [{name}] ****" >> overhead-processing.log
+
+# See https://github.com/LITMUS-RT/feather-trace-tools/blob/master/doc/howto-trace-and-process-overheads.md
+
+# (1) Sort
+echo -n "Sorting overhead traces..."
+ft-sort-traces overheads_host=*_trace={name}_{{msg,cpu}}=*.bin >> overhead-processing.log 2>&1 || fail
+echo " ok."
+# (2) Split
+echo -n "Extracting samples..."
+ft-extract-samples overheads_host=*_trace={name}_{{msg,cpu}}=*.bin >> overhead-processing.log 2>&1 || fail
+echo " ok."
+# Clean up...
+echo -n "Moving raw overhead files to $(pwd)/raw-overhead-files ..."
+mkdir -p raw-overhead-files/ >> overhead-processing.log 2>&1 || fail
+mv -v overheads_host=*_trace={name}_{{msg,cpu}}=*.bin raw-overhead-files/ >> overhead-processing.log 2>&1 || fail
+echo " ok."
+# (3) Combine
+echo -n "Aggregating samples..."
+ft-combine-samples --std overheads_host=*_trace={name}_{{msg,cpu}}=*_overhead=*.float32  >> overhead-processing.log 2>&1
+echo " ok."
+# Clean up...
+echo -n "Moving aggregated sample files to $(pwd)/overhead-samples ..."
+mkdir -p overhead-samples/ >> overhead-processing.log 2>&1 || fail
+mv -v overheads_host=*_trace={name}_{{msg,cpu}}=*_overhead=*.float32 overhead-samples/ >>  overhead-processing.log 2>&1 || fail
+echo " ok."
+echo "Hint: run ft-compute-stats combined-overheads_*.float32 > stats.csv to obtain summary statistics."
+"""
+
 SCHEDULE_TRACE = """
 which st_trace > /dev/null
 if [ "$?" -ne 0 ]
