@@ -51,6 +51,30 @@ function cleanup_tasks()
     fi
 }}
 
+
+function backup_file()
+{{
+	SRC=$1
+	TGT=$2
+
+	if [ -z "$TGT" ]
+	then
+		TGT=$SRC
+	fi
+
+	if ! [ -e "$TGT" ]
+	then
+		cp "$SRC" "$TGT"
+	else
+		CNT=1
+		while [ -e "$TGT.$CNT" ]
+		do
+			CNT=$((CNT + 1))
+		done
+		cp "$SRC" "$TGT.$CNT"
+	fi
+}}
+
 function die()
 {{
     cleanup_background
@@ -122,7 +146,14 @@ fi
 
 DEBUG_TRACE = """
 echo "Launching TRACE() debug tracer."
-{taskset}cat /dev/litmus/log > {name}.log &
+LOG_FILE="debug_host=$(hostname)_scheduler=$(showsched)_trace={name}.log"
+# Check environmental variable
+if ! [ -z "$KEEP_DEBUG_LOGS" ]
+then
+    # Keep a copy of the old log if we are debugging.
+    [ -e $LOG_FILE ] && backup_file $LOG_FILE
+fi
+{taskset}cat /dev/litmus/log > $LOG_FILE &
 TRACERS="$TRACERS $!"
 """
 
