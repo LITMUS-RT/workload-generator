@@ -25,12 +25,14 @@ def is_feasible(taskset):
     sol = apa_implicit_deadline_feasible(ts, aff)
     return True if sol else False
 
-def make_taskset(n, u, min_wcet=500):
+def make_taskset(n, u, min_wcet=200, max_period=ms2us(5000)):
     ts = emstada.gen_taskset('uni-broad', 'logunif', n, u,
             period_granularity=1, want_integral=True, scale=ms2us)
 
     for t in ts:
-        while t.cost < min_wcet:
+        # Try to reach minimum cost by scaling up the period,
+        # but without generating extremely large periods.
+        while t.cost < min_wcet and t.period * 2 <= max_period:
             t.cost *= 2
             t.period *= 2
             t.deadline *= 2
