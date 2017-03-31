@@ -163,7 +163,7 @@ def generate_sh(name, data,
     ))
     f.write(SET_SCHEDULER.format(scheduler = 'Linux'))
 
-    if process_overheads:
+    if want_overheads and process_overheads:
         f.write(PROCESS_OVERHEAD_TRACE.format(name = name))
 
     f.close()
