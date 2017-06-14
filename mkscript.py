@@ -40,6 +40,7 @@ def generate_sh(name, data,
                 want_debug=False,
                 want_overheads=False,
                 process_overheads=False,
+                want_cleanup=False,
                 want_schedule=False,
                 default_wss=0,
                 background_wss=0,
@@ -165,6 +166,8 @@ def generate_sh(name, data,
 
     if want_overheads and process_overheads:
         f.write(PROCESS_OVERHEAD_TRACE.format(name = name))
+        if want_cleanup:
+            f.write(CLEAN_UP_RAW_FILES.format(name = name))
 
     f.close()
     chmod(fname, stat.S_IRGRP | stat.S_IROTH | stat.S_IRWXU)
@@ -200,6 +203,11 @@ def parse_args():
         '-P', '--process-overheads', action='store_true', dest='process_overheads',
         default=False,
         help='Extract overhead samples form Feather-Trace trace files')
+    p.add_argument(
+        '-C', '--clean-up-raw-files', action='store_true', dest='want_cleanup',
+        default=False,
+        help='Remove raw overhead files after processing')
+
     p.add_argument(
         '-D', '--trace-debug-log', action='store_true', dest='want_debug_trace',
         default=False,
@@ -256,6 +264,7 @@ def main(args=sys.argv[1:]):
                         want_debug=options.want_debug_trace,
                         want_overheads=options.want_overheads,
                         process_overheads=options.process_overheads,
+                        want_cleanup=options.want_cleanup,
                         want_schedule=options.want_sched_trace,
                         background_wss=options.bg_wss,
                         default_wss=options.wss,

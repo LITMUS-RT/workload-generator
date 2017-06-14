@@ -219,6 +219,13 @@ echo " ok."
 echo "Hint: run ft-compute-stats combined-overheads_*.float32 > stats.csv to obtain summary statistics."
 """
 
+CLEAN_UP_RAW_FILES = """
+echo -n "Cleaning up raw overhead files..."
+rm -vf raw-overhead-files/overheads_host=*_trace={name}_{{msg,cpu}}=*.bin >> overhead-processing.log 2>&1 || fail
+rm -vf overhead-samples/overheads_host=*_trace={name}_{{msg,cpu}}=*_overhead=*.float32 >> overhead-processing.log 2>&1 || fail
+echo " ok."
+"""
+
 SCHEDULE_TRACE = """
 which st_trace > /dev/null
 if [ "$?" -ne 0 ]
